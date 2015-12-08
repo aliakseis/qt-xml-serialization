@@ -8,15 +8,15 @@ message("You are running qmake on a generated .pro file. This may not work!")
 
 
 HEADERS += ./customutf8codec.h \
+    ./instantiator.h \
+    ./iparentadvice.h \
     ./modeldeserializer.h \
     ./modelserializecommon.h \
     ./modelserializer.h \
     ./patricia.h \
-    ./instantiator.h \
-    ./iparentadvice.h \
     ./testmodel.h
-SOURCES += ./main.cpp \
-    ./customutf8codec.cpp \
+SOURCES += ./customutf8codec.cpp \
+    ./main.cpp \
     ./modeldeserializer.cpp \
     ./modelserializer.cpp \
     ./testmodel.cpp
