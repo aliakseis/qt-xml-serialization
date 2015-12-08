@@ -6,8 +6,8 @@ TEMPLATE = app
 TARGET = qt-xml-serialization
 DESTDIR = ./Debug
 QT += core
-CONFIG += debug console
-DEFINES += WIN64 QT_DLL
+CONFIG += debug console c++11
+#DEFINES += WIN64 QT_DLL
 INCLUDEPATH += . \
     ./GeneratedFiles/Debug
 DEPENDPATH += .

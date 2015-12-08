@@ -15,8 +15,10 @@ public:
         TrieNode(std::unique_ptr<char[]> k, const T* v, int b = 0)
 			: branch_bit(b)
 			, key(std::move(k))
-            , value(v ? std::make_unique<T>(*v) : nullptr)
+            //, value(v ? std::make_unique<T>(*v) : nullptr)
 		{
+            if (v)
+                value.reset(new T(*v));
 		}
 
 		const char* get_key() { return key.get(); }
