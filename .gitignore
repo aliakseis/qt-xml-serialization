@@ -216,3 +216,7 @@ pip-log.txt
 .mr.developer.cfg
 
 out/
+
+.vs/
+
+qt-xml-serialization.qtvscr

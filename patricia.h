@@ -7,249 +7,248 @@ template <typename T>
 class PatriciaTrie
 {
 public:
-	struct TrieNode
-	{
-		const int  branch_bit;   // Stores index of next Bit to compare
-		TrieNode*  children[2];  // left and right child
+    struct TrieNode
+    {
+        const int  branch_bit;   // Stores index of next Bit to compare
+        TrieNode*  children[2] {};  // left and right child
 
         TrieNode(std::unique_ptr<char[]> k, const T* v, int b = 0)
-			: branch_bit(b)
-			, key(std::move(k))
+            : branch_bit(b)
+            , key(std::move(k))
             //, value(v ? std::make_unique<T>(*v) : nullptr)
-		{
+        {
             if (v)
                 value.reset(new T(*v));
-		}
+        }
 
-		const char* get_key() { return key.get(); }
-		const T* get_value()  { return value.get(); }
+        const char* get_key() { return key.get(); }
+        const T* get_value()  { return value.get(); }
 
-	private:
-		std::unique_ptr<char[]> key;
+    private:
+        std::unique_ptr<char[]> key;
         std::unique_ptr<T> value;
-	};
+    };
 
 private:
 
-	enum
-	{
-		WORD_BITS = 8,				// Number of Bits in a Block 
-		HI_WORD = WORD_BITS - 1,	// Hi-order bit, starting count from 0 
-		BIT_MASK = WORD_BITS - 1,	// WORD SHIFT low-order bits enabled 
-	};
+    enum
+    {
+        WORD_BITS = 8,                // Number of Bits in a Block 
+        HI_WORD = WORD_BITS - 1,    // Hi-order bit, starting count from 0 
+        BIT_MASK = WORD_BITS - 1,    // WORD SHIFT low-order bits enabled 
+    };
 
-	// Root for the entire Patricia tree, (actually a dummy header!). 
-	mutable TrieNode* root;
+    // Returns true if bit is set.
+    template <typename C>
+    static bool is_bit_set(C block, int shift) { return (block & ((1 << HI_WORD) >> shift)) != 0; }
 
-	// Recursively free tree memory via modified post-order traversal. 
-	void dispose_trie(TrieNode* root)
-	{
-		if (root->children[0]->branch_bit > root->branch_bit)
-		{
-			dispose_trie(root->children[0]);
-		}
-		if (root->children[1]->branch_bit > root->branch_bit)
-		{
-			dispose_trie(root->children[1]);
-		}
+    // Root for the entire Patricia tree, (actually a dummy header!). 
+    mutable TrieNode* root;
 
-		delete root;
-	}
+    // Recursively free tree memory via modified post-order traversal. 
+    void dispose_trie(TrieNode* root)
+    {
+        if (root->children[0]->branch_bit > root->branch_bit)
+        {
+            dispose_trie(root->children[0]);
+        }
+        if (root->children[1]->branch_bit > root->branch_bit)
+        {
+            dispose_trie(root->children[1]);
+        }
 
-	void init() const
-	{
-		if (0 == root)
-		{
+        delete root;
+    }
+
+    void init() const
+    {
+        if (0 == root)
+        {
             std::unique_ptr<char[]> empty(new char[1]);
-			empty[0] = 0;
-			root = new TrieNode(std::move(empty), nullptr);
-			root->children[0]  = root;
-			root->children[1] = root;
-		}
-	}
+            empty[0] = 0;
+            root = new TrieNode(std::move(empty), nullptr);
+            root->children[0]  = root;
+            root->children[1] = root;
+        }
+    }
 
 public:
-	PatriciaTrie()
-		: root(0)
-	{
-	}
+    PatriciaTrie()
+        : root(0)
+    {
+    }
 
-	~PatriciaTrie()
-	{
-		dispose();
-	}
+    ~PatriciaTrie()
+    {
+        dispose();
+    }
 
-	template<typename C>
-	TrieNode* find(const C* key, size_t key_len = 0, TrieNode** ret_parent = 0) const
-	{
-		init();
+    template<typename C>
+    TrieNode* find(const C* key, size_t key_len = 0, TrieNode** ret_parent = 0) const
+    {
+        init();
 
-		TrieNode* parent;
-		TrieNode* cur   = root->children[0]; // Root is *always* a dummy node, skip it 
-		const C*      block = key;          // Pointer to Current Block of Bits 
-		int        lower = 0;
+        TrieNode* parent;
+        TrieNode* cur   = root->children[0]; // Root is *always* a dummy node, skip it 
+        const C*      block = key;          // Pointer to Current Block of Bits 
+        int        lower = 0;
 
-		if (key_len != 0)
-		{
-			const C* end = block + key_len;
-			do
-			{
-				parent  = cur;
-				int bit = cur->branch_bit - lower;
+        if (key_len != 0)
+        {
+            const C* end = block + key_len;
+            do
+            {
+                parent  = cur;
+                int bit = cur->branch_bit - lower;
 
-				if (bit >= WORD_BITS)
+                if (bit >= WORD_BITS)
 
-					while (lower + WORD_BITS <= cur->branch_bit)
-					{
-						lower += WORD_BITS;
-						++block;
-						bit -= WORD_BITS;
-					}
+                    while (lower + WORD_BITS <= cur->branch_bit)
+                    {
+                        lower += WORD_BITS;
+                        ++block;
+                        bit -= WORD_BITS;
+                    }
 
-				cur = cur->children[(block == end) ? 0 : is_bit_set(*block, bit)];
-			}
-			while (parent->branch_bit < cur->branch_bit);
-		}
-		else
-			do
-			{
-				parent  = cur;
-				int bit = cur->branch_bit - lower;
+                cur = cur->children[(block == end) ? 0 : is_bit_set(*block, bit)];
+            }
+            while (parent->branch_bit < cur->branch_bit);
+        }
+        else
+            do
+            {
+                parent  = cur;
+                int bit = cur->branch_bit - lower;
 
-				if (bit >= WORD_BITS)
+                if (bit >= WORD_BITS)
 
-					while (lower + WORD_BITS <= cur->branch_bit)
-					{
-						lower += WORD_BITS;
-						++block;
-						bit -= WORD_BITS;
-					}
+                    while (lower + WORD_BITS <= cur->branch_bit)
+                    {
+                        lower += WORD_BITS;
+                        ++block;
+                        bit -= WORD_BITS;
+                    }
 
-				cur = cur->children[is_bit_set(*block, bit)];
-			}
-			while (parent->branch_bit < cur->branch_bit);
+                cur = cur->children[is_bit_set(*block, bit)];
+            }
+            while (parent->branch_bit < cur->branch_bit);
 
-		if (ret_parent != 0)
-		{
-			*ret_parent = parent;
-		}
+        if (ret_parent != 0)
+        {
+            *ret_parent = parent;
+        }
 
-		return cur;                   // Let calling routine worry whether Keys matched! 
-	}
+        return cur;                   // Let calling routine worry whether Keys matched! 
+    }
 
     TrieNode* insert(const T& v, const char* key, size_t key_len = 0)
-	{
-		TrieNode* parent;
-		TrieNode* cur = find(key, key_len, &parent);
+    {
+        TrieNode* parent;
+        TrieNode* cur = find(key, key_len, &parent);
 
-		// Exclude duplicates 
-		if ((0 == key_len) ? 0 == strcmp(key, cur->get_key())
-				: (0 == strncmp(key, cur->get_key(), key_len) && 0 == cur->get_key()[key_len]))
-		{
-			return cur;
-		}
-		else
-		{
-			if (0 == key_len)
-			{
-				key_len = strlen(key);
-			}
-			std::unique_ptr<char[]> szKey(new char[key_len + 1]);
-			memcpy(szKey.get(), key, key_len);
-			szKey[key_len] = 0;
+        // Exclude duplicates 
+        if ((0 == key_len) ? 0 == strcmp(key, cur->get_key())
+                : (0 == strncmp(key, cur->get_key(), key_len) && 0 == cur->get_key()[key_len]))
+        {
+            return cur;
+        }
 
-			key = szKey.get();
+        if (0 == key_len)
+        {
+            key_len = strlen(key);
+        }
+        std::unique_ptr<char[]> szKey(new char[key_len + 1]);
+        memcpy(szKey.get(), key, key_len);
+        szKey[key_len] = 0;
 
-			const char* key_block = key;
-			const char* cur_block = cur->get_key();
-			int first_bit_diff;
+        key = szKey.get();
 
-			// Find the first word where Bits differ, skip common prefixes. 
+        const char* key_block = key;
+        const char* cur_block = cur->get_key();
+        int first_bit_diff;
 
-			for (first_bit_diff = 0;
-					*cur_block == *key_block;
-					first_bit_diff += WORD_BITS)
-			{
-				cur_block++, key_block++;
-			}
+        // Find the first word where Bits differ, skip common prefixes. 
 
-			// Now, find location of that Bit, xor does us a favor here. 
+        for (first_bit_diff = 0;
+                *cur_block == *key_block;
+                first_bit_diff += WORD_BITS)
+        {
+            cur_block++;
+            key_block++;
+        }
 
-			for (int bit = *cur_block ^ *key_block;
-					!(bit & (1 << HI_WORD));
-					bit <<= 1)
-			{
-				first_bit_diff++;
-			}
+        // Now, find location of that Bit, xor does us a favor here. 
 
-			// *Not* adding at a leaf node 
-			if (parent->branch_bit > first_bit_diff)
-			{
-				// This is almost identical to the original Find above, however, we are 
-				// guaranteed to end up at an internal node, rather than a leaf. 
+        for (int bit = *cur_block ^ *key_block;
+                !(bit & (1 << HI_WORD));
+                bit <<= 1)
+        {
+            first_bit_diff++;
+        }
 
-				int lower = 0;
-				cur = root;
-				cur_block = key;
-				do
-				{
-					parent  = cur;
-					int bit = cur->branch_bit - lower;
+        // *Not* adding at a leaf node 
+        if (parent->branch_bit > first_bit_diff)
+        {
+            // This is almost identical to the original Find above, however, we are 
+            // guaranteed to end up at an internal node, rather than a leaf. 
 
-					if (bit >= WORD_BITS)
+            int lower = 0;
+            cur = root;
+            cur_block = key;
+            do
+            {
+                parent  = cur;
+                int bit = cur->branch_bit - lower;
 
-						while (lower + WORD_BITS <= cur->branch_bit)
-						{
-							lower += WORD_BITS;
-							++cur_block;
-							bit -= WORD_BITS;
-						}
+                if (bit >= WORD_BITS)
 
-					cur = cur->children[is_bit_set(*cur_block, bit)];
-				}
-				while (cur->branch_bit < first_bit_diff);
-			}
+                    while (lower + WORD_BITS <= cur->branch_bit)
+                    {
+                        lower += WORD_BITS;
+                        ++cur_block;
+                        bit -= WORD_BITS;
+                    }
 
-			TrieNode* t = new TrieNode(std::move(szKey), &v, first_bit_diff);
+                cur = cur->children[is_bit_set(*cur_block, bit)];
+            }
+            while (cur->branch_bit < first_bit_diff);
+        }
 
-			// Key_Block was saved from above, this avoids some costly recomputation. 
-			if (is_bit_set(*key_block, first_bit_diff & BIT_MASK))
-			{
-				t->children[0] = cur;
-				t->children[1] = t;
-			}
-			else
-			{
-				t->children[0] = t;
-				t->children[1] = cur;
-			}
+        auto t = new TrieNode(std::move(szKey), &v, first_bit_diff);
 
-			// Determine whether the new node goes to the left or right of its parent 
-			const char* block = key + (parent->branch_bit / WORD_BITS);
+        // Key_Block was saved from above, this avoids some costly recomputation. 
+        if (is_bit_set(*key_block, first_bit_diff & BIT_MASK))
+        {
+            t->children[0] = cur;
+            t->children[1] = t;
+        }
+        else
+        {
+            t->children[0] = t;
+            t->children[1] = cur;
+        }
 
-			parent->children[is_bit_set(*block, parent->branch_bit & BIT_MASK)] = t;
+        // Determine whether the new node goes to the left or right of its parent 
+        const char* block = key + (parent->branch_bit / WORD_BITS);
 
-			return t;
-		}
-	}
+        parent->children[is_bit_set(*block, parent->branch_bit & BIT_MASK)] = t;
 
-	// Frees all dynamic memory in Patricia Trie 
-	void dispose()
-	{
-		if (root != 0)
-		{
-			TrieNode* left = root->children[0];
-			dispose_trie(left);
-			if (root != left)
-			{
-				delete root;
-			}
+        return t;
+    }
 
-			root = 0;
-		}
-	}
+    // Frees all dynamic memory in Patricia Trie 
+    void dispose()
+    {
+        if (root != 0)
+        {
+            TrieNode* left = root->children[0];
+            dispose_trie(left);
+            if (root != left)
+            {
+                delete root;
+            }
 
-	// Returns true if bit is set. 
-	template <typename C>
-	static bool is_bit_set(C block, int shift) { return (block & ((1 << HI_WORD) >> shift)) != 0; }
+            root = 0;
+        }
+    }
 };
