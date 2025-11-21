@@ -18,5 +18,6 @@ HEADERS += ./customutf8codec.h \
 SOURCES += ./customutf8codec.cpp \
     ./main.cpp \
     ./modeldeserializer.cpp \
+    ./modelserializecommon.cpp \
     ./modelserializer.cpp \
     ./testmodel.cpp
